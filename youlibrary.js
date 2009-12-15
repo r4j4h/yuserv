@@ -6,15 +6,14 @@ var file = require('file');
 
 fu.playerHandler = function (filename) {
 	return function (req, res) {
-	  body = "<html><head>";
-	  body += "<script type=\"text/javascript\" src=\"/flowplayer.js\"></script>";
-	  body += "</head><body><table>";
+		body = "<html><head>";
+		body += "<script type=\"text/javascript\" src=\"/flowplayer.js\"></script>";
+		body += "</head><body><table>";
 		body += "<tr><td>";
 		body += "<a href=\"" + unescape(filename) + "\" style=\"display:block;width:520px;height:330px\" id=\"player\"></a>";
 		body += "<script>flowplayer(\"player\", \"/flowplayer.swf\");</script>";
 		body += "</td></tr>";
 		body += "</table></body></html>";
-
 		headers = 
 		[ 
 			[ "Content-Type" , "text/html" ],
@@ -27,163 +26,154 @@ fu.playerHandler = function (filename) {
 };
 
 fu.dirHandler = function (dirname) {
-  var body, headers;
-  
-  function loadResponseData(callback) {
-    if (body && headers && !DEBUG) {
-      callback();
-      return;
-    }
- 
-    var promise = posix.readdir(dirname);
- 
-    promise.addCallback(function (files) {
-      //body = JSON.stringify(files);
-	  body = "<html><head>";
-	  body += "</head><body><a href=\"javascript:location='http://" + fuip + ":" + fuport + "/download/?url='+escape(location) \">Youtube-dl</a><table>";
-	  
-		for (file in files)
-		{
-			body += "<tr><td><a href=\"/vids/" + files[file] + ".html\">" + files[file] + "</a></td></tr>";
-			fu.get("/vids/" + files[file] + ".html", fu.playerHandler("/vids/" + files[file]));
-			fu.get("/vids/" + files[file], fu.staticHandler(dirname + "/" + files[file]));
+	var body, headers;
+	
+	function loadResponseData(callback) {
+		if (body && headers && !DEBUG) {
+			callback();
+			return;
 		}
-		body += "</table></body></html>";
-		headers = 
-		[ 
-			[ "Content-Type" , "text/html" ],
-			[ "Content-Length" , body.length ]
-		];
-      if (!DEBUG)
-        headers.push(["Cache-Control", "public"]);
-       
-      sys.puts("dir " + dirname + " loaded");
-      callback();
-    });
- 
-    promise.addErrback(function () {
-      sys.puts("Error loading dir: " + dirname);
-    });
-  }
- 
-  return function (req, res) {
-    loadResponseData(function () {
-      res.sendHeader(200, headers);
-	  	res.sendBody(body);
-      res.finish();
-    });
-  }
+		
+		var promise = posix.readdir(dirname);
+	
+		promise.addCallback(function (files) {
+			body = "<html><head>";
+			body += "</head><body><a href=\"javascript:location='http://" + fuip + ":" + fuport + "/download/?url='+escape(location) \">Youtube-dl</a><table>";
+		
+			for (file in files){
+				body += "<tr><td><a href=\"/vids/" + files[file] + ".html\">" + files[file] + "</a></td></tr>";
+				fu.get("/vids/" + files[file] + ".html", fu.playerHandler("/vids/" + files[file]));
+				fu.get("/vids/" + files[file], fu.staticHandler(dirname + "/" + files[file]));
+			}
+			body += "</table></body></html>";
+			headers = 
+				[ 
+					[ "Content-Type" , "text/html" ],
+					[ "Content-Length" , body.length ]
+				];
+			if (!DEBUG)
+			headers.push(["Cache-Control", "public"]);
+		
+			sys.puts("dir " + dirname + " loaded");
+			callback();
+		});
+	
+		promise.addErrback(function () {
+			sys.puts("Error loading dir: " + dirname);
+		});
+	}
+	
+	return function (req, res) {
+		loadResponseData(function () {
+			res.sendHeader(200, headers);
+			res.sendBody(body);
+			res.finish();
+		});
+	}
 };
 
 fu.downloadHandler = function (dirname) {
-  var body, status, headers, metaurl, vidurl;
-  
-  function loadResponseData(callback) {
-	sys.puts("META: " + metaurl);
-	sys.puts("VID: " + vidurl);
-	status = 400;
-	var client = http.createClient(80, "www.youtube.com");
-	var request = client.get(metaurl, {"host": "www.youtube.com", "Connection": "keep-alive"});
-	request.finish(function (res) {
-		var response = "";
-		switch(res.statusCode)
-		{
-			case 200:
-				res.addListener('body', function(chunk) {
-					response+=chunk;
-				});
-				res.addListener('complete', function() {
-					body = response;
-					meta = JSON.parse(response);
-					title = meta["title"];
-					var vrequest = client.get(vidurl, {"host": "www.youtube.com", "Connection": "keep-alive"});
-					vrequest.finish(function (res) {
-						var response = "";
-						switch(res.statusCode)
-						{
-							case 200:
-								break;
-							default:
-						}
-						res.addListener('body', function(chunk) {
-							response+=chunk;
-						});
-						res.addListener('complete', function() {
-							lines = response.split("&");
-							for(line in lines)
-							{
-								parts = lines[line].split("=");
-								if(parts[0] == "fmt_url_map")
-								{
-									map = parts[1];
-									urls = map.split("%2C");
-									for(url in urls)
-									{
-										parts = urls[url].split("%7C");
-										if(parts[0] == "34")
-										{
-											status = 200;
-											sys.puts(unescape(parts[1]));
-											downloadfile(unescape(parts[1]), dirname, title);
-											break;
-										}
-										if(parts[0] == "35")
-										{
-											status = 200;
-											sys.puts(unescape(parts[1]));
-											downloadfile(unescape(parts[1]), dirname, title);
-											break;
-										}
-										if(parts[0] == "5")
-										{
-											status = 200;
-											sys.puts(unescape(parts[1]));
-											downloadfile(unescape(parts[1]), dirname, title);
-											break;
+	var body, status, headers, metaurl, vidurl;
+	
+	function loadResponseData(callback) {
+		sys.puts("META: " + metaurl);
+		sys.puts("VID: " + vidurl);
+		status = 400;
+
+		var client = http.createClient(80, "www.youtube.com");
+		var request = client.get(metaurl, {"host": "www.youtube.com", "Connection": "keep-alive"});
+
+		request.finish(function (res) {
+			var response = "";
+			switch(res.statusCode)
+			{
+				case 200:
+					res.addListener('body', function(chunk) {
+						response+=chunk;
+					});
+					res.addListener('complete', function() {
+						body = response;
+						meta = JSON.parse(response);
+						title = meta["title"];
+						var vrequest = client.get(vidurl, {"host": "www.youtube.com", "Connection": "keep-alive"});
+						vrequest.finish(function (res) {
+							var response = "";
+							switch(res.statusCode){
+								case 200:
+									break;
+								default:
+							}
+							res.addListener('body', function(chunk) {
+								response+=chunk;
+							});
+							res.addListener('complete', function() {
+								lines = response.split("&");
+								for(line in lines){
+									parts = lines[line].split("=");
+									if(parts[0] == "fmt_url_map"){
+										map = parts[1];
+										urls = map.split("%2C");
+										for(url in urls){
+											parts = urls[url].split("%7C");
+											if(parts[0] == "34"){
+												status = 200;
+												sys.puts(unescape(parts[1]));
+												downloadfile(unescape(parts[1]), dirname, title);
+												break;
+											}
+											if(parts[0] == "35"){
+												status = 200;
+												sys.puts(unescape(parts[1]));
+												downloadfile(unescape(parts[1]), dirname, title);
+												break;
+											}
+											if(parts[0] == "5"){
+												status = 200;
+												sys.puts(unescape(parts[1]));
+												downloadfile(unescape(parts[1]), dirname, title);
+												break;
+											}
 										}
 									}
 								}
-							}
-							headers = 
-							[ 
-								[ "Content-Type" , "text/html" ],
-								[ "Content-Length" , body.length ]
-							];
-							callback();
+								headers = 
+								[ 
+									[ "Content-Type" , "text/html" ],
+									[ "Content-Length" , body.length ]
+								];
+								callback();
+							});
 						});
 					});
-				});
-				break;
-			default:
-		}
-	});
-  }
- 
-  return function (req, res) {
-	var myregexp = new RegExp("http://www\\.youtube\\.com/watch\\??([-A-Za-z0-9+&@#/%=~_|!:,.;]*)?");
-	var match = myregexp.exec(unescape(req.uri.queryString));
-	var video_id = "";
-	if (match != null && match.length > 1) {
-		qs = match[1];
-		params = qs.split("&");
-		for(param in params)
-		{
-			parts = params[param].split("=");
-			if(parts[0] == "v")
-			{
-				video_id = parts[1];
+					break;
+				default:
+			}
+		});
+	}
+	
+	return function (req, res) {
+		var myregexp = new RegExp("http://www\\.youtube\\.com/watch\\??([-A-Za-z0-9+&@#/%=~_|!:,.;]*)?");
+		var match = myregexp.exec(unescape(req.uri.queryString));
+		var video_id = "";
+		if (match != null && match.length > 1){
+			qs = match[1];
+			params = qs.split("&");
+			for(param in params){
+				parts = params[param].split("=");
+				if(parts[0] == "v"){
+					video_id = parts[1];
+				}
 			}
 		}
+		metaurl = "/oembed?url=" + escape("http://www.youtube.com/watch?v=" + video_id + "&format=json");
+		vidurl = "/get_video_info?video_id=" + video_id + "&eurl=" + escape(myurl);
+		
+		loadResponseData(function () {
+			res.sendHeader(status, headers);
+			res.sendBody(body);
+			res.finish();
+		});
 	}
-	metaurl = "/oembed?url=" + escape("http://www.youtube.com/watch?v=" + video_id + "&format=json");
-	vidurl = "/get_video_info?video_id=" + video_id + "&eurl=" + escape(myurl);
-	
-    loadResponseData(function () {
-      res.sendHeader(status, headers);
-	  res.sendBody(body);
-      res.finish();
-    });
-  }
 };
 
 function downloadfile(url, vdir, title)
