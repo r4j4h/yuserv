@@ -25,7 +25,7 @@ git://github.com/billywhizz/scratch.git
 
 configuration:
 
-just change the IP, Port, download directory and youtube id at the bottom of youlibrary.js:
+just change the IP, Port, download directory and youtube id in yutest.js:
 
 e.g. 
 
@@ -41,3 +41,6 @@ Tidied up formatting
 
 0.0.5
 Added css
+
+0.0.7
+pulled all server code into yuserv.js and made test application in yutest.js
