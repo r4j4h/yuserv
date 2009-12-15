@@ -8,6 +8,7 @@ fu.playerHandler = function (filename) {
 	return function (req, res) {
 		body = "<html><head>";
 		body += "<script type=\"text/javascript\" src=\"/flowplayer.js\"></script>";
+		body += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">";
 		body += "</head><body><table>";
 		body += "<tr><td>";
 		body += "<a href=\"" + unescape(filename) + "\" style=\"display:block;width:520px;height:330px\" id=\"player\"></a>";
@@ -38,14 +39,15 @@ fu.dirHandler = function (dirname) {
 	
 		promise.addCallback(function (files) {
 			body = "<html><head>";
-			body += "</head><body><a href=\"javascript:location='http://" + fuip + ":" + fuport + "/download/?url='+escape(location) \">Youtube-dl</a><table>";
+			body += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">";
+			body += "</head><body><div id=\"page\"><h1>BookMarklet</h1><a href=\"javascript:location='http://" + fuip + ":" + fuport + "/download/?url='+escape(location) \">Youtube-dl</a><h1>Videos</h1>";
 		
 			for (file in files){
-				body += "<tr><td><a href=\"/vids/" + files[file] + ".html\">" + files[file] + "</a></td></tr>";
+				body += "<p><a href=\"/vids/" + files[file] + ".html\">" + files[file] + "</a></p>";
 				fu.get("/vids/" + files[file] + ".html", fu.playerHandler("/vids/" + files[file]));
 				fu.get("/vids/" + files[file], fu.staticHandler(dirname + "/" + files[file]));
 			}
-			body += "</table></body></html>";
+			body += "</div></body></html>";
 			headers = 
 				[ 
 					[ "Content-Type" , "text/html" ],
@@ -211,6 +213,7 @@ var fufilesdir = "../vids";
 var myurl = "http://www.google.com/";
 
 fu.listen(fuport, fuip);
+fu.get("/style.css", fu.staticHandler("style.css"));
 fu.get("/flowplayer.js", fu.staticHandler("flowplayer.js"));
 fu.get("/flowplayer.swf", fu.staticHandler("flowplayer.swf"));
 fu.get("/flowplayer.controls.swf", fu.staticHandler("flowplayer.controls.swf"));
