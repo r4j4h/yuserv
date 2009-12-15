@@ -176,7 +176,7 @@ fu.downloadHandler = function (dirname) {
 		}
 	}
 	metaurl = "/oembed?url=" + escape("http://www.youtube.com/watch?v=" + video_id + "&format=json");
-	vidurl = "/get_video_info?video_id=" + video_id + "&eurl=" + escape("http://www.rebelnation.com/");
+	vidurl = "/get_video_info?video_id=" + video_id + "&eurl=" + escape(myurl);
 	
     loadResponseData(function () {
       res.sendHeader(status, headers);
@@ -216,10 +216,13 @@ function downloadfile(url, vdir, title)
 
 var fuip = "192.168.2.191";
 var fuport = 8000;
+var fufilesdir = "../vids";
+// change to some sort of unique identifier for yourself. google throttles based on this as far as i can tell.
+var myurl = "http://www.google.com/";
 
 fu.listen(fuport, fuip);
 fu.get("/flowplayer.js", fu.staticHandler("flowplayer.js"));
 fu.get("/flowplayer.swf", fu.staticHandler("flowplayer.swf"));
 fu.get("/flowplayer.controls.swf", fu.staticHandler("flowplayer.controls.swf"));
-fu.get("/", fu.dirHandler("../vids"));
-fu.get("/download/", fu.downloadHandler("../vids"));
+fu.get("/", fu.dirHandler(fufilesdir));
+fu.get("/download/", fu.downloadHandler(fufilesdir));

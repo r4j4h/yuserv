@@ -22,3 +22,16 @@ http://github.com/ry/node_chat
 will post some updates/bug fixes as soon as i can... feel free to clone this and play around with it. git clone url is:
 
 git://github.com/billywhizz/scratch.git
+
+configuration:
+
+just change the IP, Port, download directory and youtube id at the bottom of youlibrary.js:
+
+e.g. 
+
+var fuip = "192.168.2.191";
+var fuport = 8000;
+var fufilesdir = "../vids";
+// change to some sort of unique identifier for yourself. google throttles based on this as far as i can tell.
+var myurl = "http://www.google.com/";
+
