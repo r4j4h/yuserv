@@ -1,0 +1,24 @@
+http://github.com/billywhizz/scratch
+
+this is very rough, full of bugs and has little or no error handling. it is a proof of concept and i have got it working. it does the following:
+
+- runs a http server listening on the interface and port specified at the bottom of youlibrary.js
+the http server has the following api, assuming it is running on 127.0.0.1:8000:
+
+http://127.0.0.1:8000/
+
+returns a html document listing the contents of the directory specified at the bottom of youlibrary.js
+files in the directory should be .flv - flash video files
+each link should open a new browser window which has an embedded flowplayer swf (http://flowplayer.org/) playing the flashvideo you clicked on
+the first link in the page is a bookmarklet which can be dragged onto your links bar in your browser. when you are on a video page in youtube you should be able to click this bookmarklet and it will trigger a download on the server
+
+http://127.0.0.1:8000/download/?url=[youtube_url]
+
+where [youtube_url] is the escaped url for the youtube page containing the video you want to download
+
+there are loads of improvements to be made. i ripped off the guts of the server code from the excellent code here:
+http://github.com/ry/node_chat
+
+will post some updates/bug fixes as soon as i can... feel free to clone this and play around with it. git clone url is:
+
+git://github.com/billywhizz/scratch.git

@@ -40,7 +40,7 @@ fu.dirHandler = function (dirname) {
     promise.addCallback(function (files) {
       //body = JSON.stringify(files);
 	  body = "<html><head>";
-	  body += "</head><body><a href=\"javascript:location='http://fedora12:8000/download/?url='+escape(location) \">Youtube-dl</a><table>";
+	  body += "</head><body><a href=\"javascript:location='http://" + fuip + ":" + fuport + "/download/?url='+escape(location) \">Youtube-dl</a><table>";
 	  
 		for (file in files)
 		{
@@ -214,7 +214,10 @@ function downloadfile(url, vdir, title)
 	}
 }
 
-fu.listen(8000, "192.168.2.191");
+var fuip = "192.168.2.191";
+var fuport = 8000;
+
+fu.listen(fuport, fuip);
 fu.get("/flowplayer.js", fu.staticHandler("flowplayer.js"));
 fu.get("/flowplayer.swf", fu.staticHandler("flowplayer.swf"));
 fu.get("/flowplayer.controls.swf", fu.staticHandler("flowplayer.controls.swf"));
