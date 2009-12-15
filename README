@@ -35,3 +35,9 @@ var fufilesdir = "../vids";
 // change to some sort of unique identifier for yourself. google throttles based on this as far as i can tell.
 var myurl = "http://www.google.com/";
 
+Revision Log:
+0.0.4
+Tidied up formatting
+
+0.0.5
+Added css

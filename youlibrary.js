@@ -9,12 +9,12 @@ fu.playerHandler = function (filename) {
 		body = "<html><head>";
 		body += "<script type=\"text/javascript\" src=\"/flowplayer.js\"></script>";
 		body += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">";
-		body += "</head><body><table>";
-		body += "<tr><td>";
+		body += "</head><body><div id=\"page\">";
+		body += "<p>";
 		body += "<a href=\"" + unescape(filename) + "\" style=\"display:block;width:520px;height:330px\" id=\"player\"></a>";
 		body += "<script>flowplayer(\"player\", \"/flowplayer.swf\");</script>";
-		body += "</td></tr>";
-		body += "</table></body></html>";
+		body += "</p>";
+		body += "</div></body></html>";
 		headers = 
 		[ 
 			[ "Content-Type" , "text/html" ],
