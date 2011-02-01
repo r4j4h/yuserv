@@ -1,8 +1,8 @@
 var yuserv = require('./yuserv');
 
-fuip = "10.11.12.8";
-fuport = 8000;
-fufilesdir = "./vids/";
+fuip = "0.0.0.0";
+fuport = parseInt(process.ARGV[2]);
+fufilesdir = process.ARGV[3];
 
 yuserv.get("/style.css", yuserv.staticHandler("style.css"));
 yuserv.get("/flowplayer.js", yuserv.staticHandler("flowplayer.js"));

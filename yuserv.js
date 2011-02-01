@@ -2,7 +2,7 @@ var sys = require("sys");
 var fs = require("fs");
 var http = require("http");
 var url = require("url");
-var httpClient = require("httpclient");
+var httpClient = require("./httpclient");
 
 var yuserv = exports;
  
