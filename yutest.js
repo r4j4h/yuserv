@@ -1,9 +1,8 @@
 var yuserv = require('./yuserv');
 
-fuip = "fedora12";
+fuip = "10.11.12.8";
 fuport = 8000;
-fufilesdir = "../vids";
-myurl = "http://www.google.com/";
+fufilesdir = "./vids/";
 
 yuserv.get("/style.css", yuserv.staticHandler("style.css"));
 yuserv.get("/flowplayer.js", yuserv.staticHandler("flowplayer.js"));

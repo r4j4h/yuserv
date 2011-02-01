@@ -1,8 +1,8 @@
-var createServer = require("http").createServer;
 var sys = require("sys");
-var posix = require("posix");
+var fs = require("fs");
 var http = require("http");
-var file = require("file");
+var url = require("url");
+var httpClient = require("httpclient");
 
 var yuserv = exports;
  
@@ -11,39 +11,208 @@ var fuip = "127.0.0.1";
 var fuport = 8000;
 var fufilesdir = "../vids";
 var myurl = "http://www.google.com/";
-
 var urlregex = new RegExp("(https?|ftp)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\\?[-A-Z0-9+&@#/%=~_|!:,.;]*)?", "i");
 var uidregex = new RegExp("http://www\\.youtube\\.com/watch\\??([-A-Za-z0-9+&@#/%=~_|!:,.;]*)?");
 
-function downloadfile(url, vdir, title)
-{
+var _formats = {
+	"34": {
+		"name": "Standard",
+		"container": "flv",
+		"video": {
+			"encoding": "MPEG-4 AVC (H.264)",
+			"max-aspect-ratio": "4:3",
+			"max-res": "640x480"
+		},
+		"audio": {
+			"encoding": "AAC",
+			"channels": "2 (stereo)",
+			"sample-rate": "44100"
+		}
+	},
+	"18": {
+		"name": "Medium",
+		"container": "mp4",
+		"video": {
+			"encoding": "MPEG-4 AVC (H.264)",
+			"max-aspect-ratio": "4:3",
+			"max-res": "480x360"
+		},
+		"audio": {
+			"encoding": "AAC",
+			"channels": "2 (stereo)",
+			"sample-rate": "44100"
+		}
+	},
+	"35": {
+		"name": "High",
+		"container": "flv",
+		"video": {
+			"encoding": "MPEG-4 AVC (H.264)",
+			"max-aspect-ratio": "16:9",
+			"max-res": "854x480"
+		},
+		"audio": {
+			"encoding": "AAC",
+			"channels": "2 (stereo)",
+			"sample-rate": "44100"
+		}
+	},
+	"22": {
+		"name": "720p",
+		"container": "mp4",
+		"video": {
+			"encoding": "MPEG-4 AVC (H.264)",
+			"max-aspect-ratio": "16:9",
+			"max-res": "1280x720"
+		},
+		"audio": {
+			"encoding": "AAC",
+			"channels": "2 (stereo)",
+			"sample-rate": "44100"
+		}
+	},
+	"37": {
+		"name": "1080p",
+		"container": "mp4",
+		"video": {
+			"encoding": "MPEG-4 AVC (H.264)",
+			"max-aspect-ratio": "16:9",
+			"max-res": "1920x1080"
+		},
+		"audio": {
+			"encoding": "AAC",
+			"channels": "2 (stereo)",
+			"sample-rate": "44100"
+		}
+	},
+	"17": {
+		"name": "Mobile",
+		"container": "3gp",
+		"video": {
+			"encoding": "MPEG-4 Visual",
+			"max-aspect-ratio": "11:9",
+			"max-res": "176x144"
+		},
+		"audio": {
+			"encoding": "AAC",
+			"channels": "2 (stereo)",
+			"sample-rate": "44100"
+		}
+	},
+	"0": {
+		"name": "Old-Standard",
+		"container": "flv",
+		"video": {
+			"encoding": "H.263",
+			"max-aspect-ratio": "4:3",
+			"max-res": "320x240"
+		},
+		"audio": {
+			"encoding": "MP3",
+			"channels": "1 (mono)",
+			"sample-rate": "22050"
+		}
+	},
+	"5": {
+		"name": "Old-Standard",
+		"container": "flv",
+		"video": {
+			"encoding": "H.263",
+			"max-aspect-ratio": "4:3",
+			"max-res": "320x240"
+		},
+		"audio": {
+			"encoding": "MP3",
+			"channels": "1 (mono)",
+			"sample-rate": "22050"
+		}
+	},
+	"6": {
+		"name": "Old-High",
+		"container": "flv",
+		"video": {
+			"encoding": "H.263",
+			"max-aspect-ratio": "4:3",
+			"max-res": "480x360"
+		},
+		"audio": {
+			"encoding": "MP3",
+			"channels": "1 (mono)",
+			"sample-rate": "44100"
+		}
+	},
+	"13": {
+		"name": "Old-Mobile",
+		"container": "3gp",
+		"video": {
+			"encoding": "H.263",
+			"max-aspect-ratio": "11:9",
+			"max-res": "176x144"
+		},
+		"audio": {
+			"encoding": "AMR",
+			"channels": "1 (mono)",
+			"sample-rate": "8000"
+		}
+	}
+}
+
+function downloadfile(durl, vdir, title) {
 	var myregexp = new RegExp("[^\\w]", "g");
 	var safetitle = title.replace(myregexp, "_");
 	var fn = vdir + "/" + safetitle + ".flv";
-
-	var match = urlregex.exec(url);
-	if (match != null && match.length > 1) {
-		var host = match[2];
-		var fd = new file.File(fn, 'w+', {encoding: 'binary'});
-		var client = http.createClient(80, host);
-		var request = client.request("GET", url, {"host": host, "Connection": "close", "User-Agent": "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 1.1.4322; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)"});
-		request.finish(function (res) {
-			res.addListener('body', function(chunk) {
-				fd.write(chunk);
-			});
-			res.addListener('complete', function() {
+	var thisurl = url.parse(durl);
+	var client = new httpClient.Client({
+		"port": 80, 
+		"host": thisurl.hostname, 
+		"timeout": 10000, 
+		"nodelay": true, 
+		"keepalive": true,
+		"initialDelay": 15000,
+		"pipeline": false,
+		"pipelinelimit": 10,
+		"queuelimit": 100,
+		"https": false,
+		"loglevel": httpClient.loglevels.ALL,
+		"logstream": process.stdout,
+		"cookies": [],
+		"autoconnect": true
+	});
+	client.perform({
+		"method": "GET",
+		"path": thisurl.pathname + thisurl.search,
+		"headers": {
+			"User-Agent": "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 1.1.4322; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)",
+			"Accept-Encoding": "gzip",
+			"Connection": "close"
+		},
+		"callbacks": {
+			"headersComplete": function(request) {
+				//logmessage("httptest.request:headersComplete: " + JSON.stringify(request.state), _loglevels.DEBUG);
+				if(request.response.info.statusCode == 200) {
+					//sys.puts(JSON.stringify(request.response.headers));
+					request.request.bodyStream = fs.createWriteStream(fn, {"flags": "w", "encoding": "binary", "mode": 0777});
+				}
+			},
+			"complete": function(err, request) {
+				request.state.time = request.state.complete - request.state.queued;
+				request.state.latency = request.state.started - request.state.flushed;
+				request.state.proc = request.state.complete - request.state.started;
+				//logmessage("httptest.request:complete: " + JSON.stringify(request.state), _loglevels.DEBUG);
+				if(err) {
+					//logmessage("httptest.request:complete:error: " + JSON.stringify(err), _loglevels.DEBUG);
+				}
 				yuserv.get("/vids/" + safetitle + ".html", yuserv.playerHandler("/vids/" + safetitle));
 				yuserv.get("/vids/" + safetitle, yuserv.staticHandler(fn));
-				fd.close();
-			});
-		});
-	}
+			}
+		}
+	});
 }
  
 function notFound(req, res) {
-	res.sendHeader(404, [["Content-Type", "text/plain"],["Content-Length", NOT_FOUND.length]]);
-	res.sendBody(NOT_FOUND);
-	res.finish();
+	res.writeHead(404, [["Content-Type", "text/plain"],["Content-Length", NOT_FOUND.length]]);
+	res.write(NOT_FOUND);
+	res.end();
 }
  
 var getMap = {};
@@ -52,14 +221,17 @@ yuserv.get = function (path, handler) {
 	getMap[path] = handler;
 };
  
-var server = createServer(function (req, res) {
+var server = http.createServer(function (req, res) {
 	if (req.method === "GET" || req.method === "HEAD") {
-		var handler = getMap[unescape(req.uri.path)] || notFound;
+		var curl = url.parse(req.url);
+		var handler = getMap[unescape(curl.pathname)] || notFound;
 		handler(req, res);
 	}
 });
- 
+
 yuserv.listen = function (port, host) {
+	fuip = host;
+	fuport = port;
 	server.listen(port, host);
 	sys.puts("server running at http://" + (host || "127.0.0.1") + ":" + port.toString() + "/");
 };
@@ -74,24 +246,36 @@ function extname (path) {
 yuserv.playerHandler = function (filename) {
 	return function (req, res) {
 		body = "<html><head>";
-		body += "<script type=\"text/javascript\" src=\"/flowplayer.js\"></script>";
-		body += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">";
-		body += "</head><body><div id=\"page\">";
-		body += "<p>";
-		body += "<a href=\"" + unescape(filename) + "\" style=\"display:block;width:520px;height:330px\" id=\"player\"></a>";
-		body += "<script>flowplayer(\"player\", \"/flowplayer.swf\");</script>";
-		body += "</p>";
-		body += "</div></body></html>";
+		switch(getext(filename)) {
+			case "flv":
+				body += "<script type=\"text/javascript\" src=\"/flowplayer.js\"></script>";
+				body += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">";
+				body += "</head><body><div id=\"page\">";
+				body += "<p>";
+				body += "<a href=\"" + unescape(filename) + "\" style=\"display:block;width:520px;height:330px\" id=\"player\"></a>";
+				body += "<script>flowplayer(\"player\", \"/flowplayer.swf\");</script>";
+				body += "</p>";
+				body += "</div>";
+				body += "</body></html>";
+				break;
+			case "mp4":
+				body += "</head><body><video autobuffer=\"false\" src=\"" + unescape(filename) + "\"/></body></html>";
+				break;
+		}
 		headers = 
 		[ 
 			[ "Content-Type" , "text/html" ],
 			[ "Content-Length" , body.length ]
 		];
-		res.sendHeader(200, headers);
-		res.sendBody(body);
-		res.finish();
+		res.writeHead(200, headers);
+		res.write(body);
+		res.end();
 	}
 };
+
+function getext(filename) {
+	return filename.split(".").pop();
+}
 
 yuserv.dirHandler = function (dirname) {
 	var body, headers;
@@ -102,17 +286,26 @@ yuserv.dirHandler = function (dirname) {
 			return;
 		}
 		
-		var promise = posix.readdir(dirname);
-	
-		promise.addCallback(function (files) {
+		fs.readdir(dirname, function(err, files) {
 			body = "<html><head>";
 			body += "<link rel=\"stylesheet\" type=\"text/css\" href=\"/style.css\">";
 			body += "</head><body><div id=\"page\"><h1>BookMarklet</h1><p><a href=\"javascript:location='http://" + fuip + ":" + fuport + "/download/?url='+escape(location) \">Youtube-dl</a></p><h1>Videos</h1>";
 		
 			for (file in files){
-				body += "<p><a href=\"/vids/" + files[file] + ".html\">" + files[file] + "</a></p>";
-				yuserv.get("/vids/" + files[file] + ".html", yuserv.playerHandler("/vids/" + files[file]));
-				yuserv.get("/vids/" + files[file], yuserv.staticHandler(dirname + "/" + files[file]));
+				switch(getext(files[file])) {
+					case "flv":
+						body += "<p><a href=\"/vids/" + files[file] + ".html\">" + files[file] + "</a></p>";
+						yuserv.get("/vids/" + files[file] + ".html", yuserv.playerHandler("/vids/" + files[file]));
+						yuserv.get("/vids/" + files[file], yuserv.vidHandler(dirname + "/" + files[file]));
+						break;
+					case "mp4":
+						body += "<p><a href=\"/vids/" + files[file] + ".html\">" + files[file] + "</a></p>";
+						yuserv.get("/vids/" + files[file] + ".html", yuserv.playerHandler("/vids/" + files[file]));
+						yuserv.get("/vids/" + files[file], yuserv.vidHandler(dirname + "/" + files[file]));
+						break;
+					default:
+						break;			
+				}
 			}
 			body += "</div></body></html>";
 			headers = 
@@ -123,96 +316,157 @@ yuserv.dirHandler = function (dirname) {
 				];
 			callback();
 		});
-	
-		promise.addErrback(function () {
-		});
 	}
 	
 	return function (req, res) {
 		loadResponseData(function () {
-			res.sendHeader(200, headers);
-			res.sendBody(body);
-			res.finish();
+			res.writeHead(200, headers);
+			res.write(body);
+			res.end();
 		});
 	}
 };
 
 yuserv.downloadHandler = function (dirname) {
-	var body, status, headers, metaurl, vidurl;
-	
+	var status;
+	var download = {
+		"metaurl": "",
+		"vidurl": "",
+		"meta": null,
+		"formats": {},
+		"dirname": dirname
+	};
 	function loadResponseData(callback) {
-		status = 400;
-
-		var client = http.createClient(80, "www.youtube.com");
-		var request = client.request("GET", metaurl, {"host": "www.youtube.com", "Connection": "keep-alive"});
-
-		request.finish(function (res) {
-			var response = "";
-			switch(res.statusCode)
-			{
-				case 200:
-					res.addListener('body', function(chunk) {
-						response+=chunk;
-					});
-					res.addListener('complete', function() {
-						body = response;
-						meta = JSON.parse(response);
-						title = meta["title"];
-						var vrequest = client.request("GET", vidurl, {"host": "www.youtube.com", "Connection": "keep-alive"});
-						vrequest.finish(function (res) {
-							var response = "";
-							switch(res.statusCode){
-								case 200:
-									break;
-								default:
-							}
-							res.addListener('body', function(chunk) {
-								response+=chunk;
-							});
-							res.addListener('complete', function() {
-								lines = response.split("&");
-								for(line in lines){
-									parts = lines[line].split("=");
-									if(parts[0] == "fmt_url_map"){
-										map = parts[1];
-										urls = map.split("%2C");
-										for(url in urls){
-											parts = urls[url].split("%7C");
-											if(parts[0] == "34"){
-												status = 200;
-												downloadfile(unescape(parts[1]), dirname, title);
+		download.status = 400;
+		var client = new httpClient.Client({
+			"port": 80, 
+			"host": "www.youtube.com", 
+			"timeout": 10000, 
+			"nodelay": true, 
+			"keepalive": true,
+			"initialDelay": 15000,
+			"pipeline": false,
+			"pipelinelimit": 10,
+			"queuelimit": 100,
+			"https": false,
+			"loglevel": httpClient.loglevels.ALL,
+			"logstream": process.stdout,
+			"cookies": [],
+			"autoconnect": true
+		});
+		client.perform({
+			"method": "GET",
+			"path": download.metaurl,
+			"headers": {
+				"User-Agent": "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 1.1.4322; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)",
+				"Accept": "*/*",
+				"Host": "www.youtube.com",
+				"Accept-Encoding": "none",
+				"Connection": "Keep-Alive"
+			},
+			"callbacks": {
+				"complete": function(err, request) {
+					request.state.time = request.state.complete - request.state.queued;
+					request.state.latency = request.state.started - request.state.flushed;
+					request.state.proc = request.state.complete - request.state.started;
+					switch(request.response.info.statusCode)
+					{
+						case 200:
+							download.meta = JSON.parse(request.response.body);
+							title = download.meta["title"];
+							client.perform({
+								"method": "GET",
+								"path": download.vidurl,
+								"headers": {
+									"User-Agent": "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 1.1.4322; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)",
+									"Accept": "*/*",
+									"Host": "www.youtube.com",
+									"Accept-Encoding": "none",
+									"Connection": "Keep-Alive"
+								},
+								"callbacks": {
+									"complete": function(err, request) {
+										request.state.time = request.state.complete - request.state.queued;
+										request.state.latency = request.state.started - request.state.flushed;
+										request.state.proc = request.state.complete - request.state.started;
+										switch(request.response.info.statusCode)
+										{
+											case 200:
+												buffy = [];
+												lines = request.response.body.split("&");
+												for(line in lines){
+													buffy.push(unescape(lines[line]));
+													parts = lines[line].split("=");
+													if(parts[0] == "fmt_url_map"){
+														map = parts[1];
+														urls = map.split("%2C");
+														for(var url in urls){
+															parts = urls[url].split("%7C");
+															download.formats[parts[0]] = unescape(parts[1]);
+															download.formats[parts[0]] = _formats[parts[0]];
+															download.formats[parts[0]].url = unescape(parts[1]);
+															download.status = 200;
+															if(parts[0] == "35"){
+																download.status = 200;
+																downloadfile(unescape(parts[1]), dirname, title);
+																break;
+															}
+/*
+															
+															if(parts[0] == "37"){
+																download.status = 200;
+																//downloadfile(unescape(parts[1]), dirname, title);
+																break;
+															}
+															if(parts[0] == "22"){
+																download.status = 200;
+																//downloadfile(unescape(parts[1]), dirname, title);
+																break;
+															}
+															if(parts[0] == "35"){
+																download.status = 200;
+																//downloadfile(unescape(parts[1]), dirname, title);
+																break;
+															}
+															if(parts[0] == "18"){
+																download.status = 200;
+																//downloadfile(unescape(parts[1]), dirname, title);
+																break;
+															}
+															if(parts[0] == "34"){
+																download.status = 200;
+																//downloadfile(unescape(parts[1]), dirname, title);
+																break;
+															}
+															if(parts[0] == "5"){
+																download.status = 200;
+																//downloadfile(unescape(parts[1]), dirname, title);
+																break;
+															}
+*/
+														}
+													}
+												}
+												callback();
 												break;
-											}
-											if(parts[0] == "35"){
-												status = 200;
-												downloadfile(unescape(parts[1]), dirname, title);
+											default:
 												break;
-											}
-											if(parts[0] == "5"){
-												status = 200;
-												downloadfile(unescape(parts[1]), dirname, title);
-												break;
-											}
 										}
 									}
 								}
-								headers = 
-								[ 
-									[ "Content-Type" , "text/html" ],
-									[ "Content-Length" , body.length ]
-								];
-								callback();
 							});
-						});
-					});
-					break;
-				default:
+							break;
+						default:
+							break;
+					}
+				}
 			}
 		});
 	}
 	
 	return function (req, res) {
-		var match = uidregex.exec(unescape(req.uri.queryString));
+		var purl = url.parse(req.url);
+		var match = uidregex.exec(unescape(purl.search));
 		var video_id = "";
 		if (match != null && match.length > 1){
 			qs = match[1];
@@ -224,13 +478,28 @@ yuserv.downloadHandler = function (dirname) {
 				}
 			}
 		}
-		metaurl = "/oembed?url=" + escape("http://www.youtube.com/watch?v=" + video_id + "&format=json");
-		vidurl = "/get_video_info?video_id=" + video_id + "&eurl=" + escape(myurl);
-		
+		download.metaurl = "/oembed?url=" + escape("http://www.youtube.com/watch?v=" + video_id + "&format=json");
+		download.vidurl = "/get_video_info?video_id=" + video_id + "&eurl=" + escape(myurl);
 		loadResponseData(function () {
-			res.sendHeader(status, headers);
-			res.sendBody(body);
-			res.finish();
+			var body = "<html><head></head><body>";
+/*
+			body += "<table>";
+			body += "<tr><td>title</td><td>" + download.meta["title"] + "</td></tr>";
+			body += "<tr><td>type</td><td>" + download.meta["type"] + "</td></tr>";
+			body += "<tr><td>author</td><td>" + download.meta["author_name"] + "</td></tr>";
+			body += "<tr><td>thumb</td><td><img width=\"" + download.meta["thumbnail_width"] + "\" height=\"" + download.meta["thumbnail_height"] + "\" src=\"" + download.meta["thumbnail_url"] + "\"></img></td></tr>";
+			body += "</table>";
+*/
+			body += "<pre>";
+			body += sys.inspect(download, true, 10);
+			body += "<pre>";
+			body += "</body></html>"
+			res.writeHead(download.status,[
+				["Content-Type" , "text/html" ],
+				[ "Content-Length" , body.length ]
+			]);
+			res.write(body);
+			res.end();
 		});
 	}
 };
@@ -245,8 +514,7 @@ yuserv.staticHandler = function (filename) {
 			callback();
 			return;
 		}
-	    var promise = posix.cat(filename, encoding);
-		promise.addCallback(function (data) {
+		fs.readFile(filename, encoding, function(err, data) {
 			body = data;
 			headers = [ 
 				[ "Content-Type" , content_type ],
@@ -256,25 +524,60 @@ yuserv.staticHandler = function (filename) {
 			];
 			callback();
 		});
- 
-		promise.addErrback(function () {
-		});
 	}
  
 	return function (req, res) {
 		loadResponseData(function () {
-			res.sendHeader(200, headers);
+			res.writeHead(200, headers);
 			if(encoding=="binary"){
-				res.sendBody(body, encoding="binary");
+				res.write(body, encoding="binary");
 			}
 			else{
-				res.sendBody(body);
+				res.write(body);
 			}		
-			res.finish();
+			res.end();
 		});
 	}
 };
  
+yuserv.vidHandler = function (filename) {
+	var content_type = yuserv.mime.lookupExtension(extname(filename));
+	var encoding = (content_type.slice(0,4) === "text" ? "utf8" : "binary");
+	return function (req, res) {
+						sys.puts(sys.inspect(req));
+		fs.stat(filename, function(err, stats) {
+			var headers = [ 
+				[ "Content-Type" , content_type ],
+				[ "Content-Length" , stats.size ],
+				[ "Cache-Control" , "public" ],
+				[ "X-Content-Duration" , "92.6" ],
+				["Accept-Ranges", "bytes" ]
+			];
+			fs.open(filename, "r", 0666, function (err, fd) { 
+				res.writeHead(200, headers);
+				var totsize = 0; 
+				function readChunk() 
+				{ 
+					fs.read(fd, 1024, totsize, encoding, function (err, chunk, bytes_read) { 
+						if(chunk) { 
+							totsize += bytes_read; 
+							//sys.puts("send: " + totsize + " bytes"); 
+							res.write(chunk, encoding); 
+							process.nextTick(readChunk); 
+						} 
+						else { 
+							sys.puts("file closed"); 
+							res.end(); 
+							fs.close(fd); 
+						} 
+					}); 
+				} 
+				readChunk(); 
+			}); 
+		});
+	}
+};
+
 yuserv.mime = {
 	lookupExtension : function(ext, fallback) {
 		return yuserv.mime.TYPES[ext.toLowerCase()] || fallback || 'application/octet-stream';
