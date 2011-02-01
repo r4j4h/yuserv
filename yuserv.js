@@ -1,8 +1,8 @@
 var createServer = require("http").createServer;
 var sys = require("sys");
 var posix = require("posix");
-var http = require('http');
-var file = require('file');
+var http = require("http");
+var file = require("file");
 
 var yuserv = exports;
  
@@ -11,6 +11,7 @@ var fuip = "127.0.0.1";
 var fuport = 8000;
 var fufilesdir = "../vids";
 var myurl = "http://www.google.com/";
+
 var urlregex = new RegExp("(https?|ftp)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\\?[-A-Z0-9+&@#/%=~_|!:,.;]*)?", "i");
 var uidregex = new RegExp("http://www\\.youtube\\.com/watch\\??([-A-Za-z0-9+&@#/%=~_|!:,.;]*)?");
 
@@ -25,7 +26,7 @@ function downloadfile(url, vdir, title)
 		var host = match[2];
 		var fd = new file.File(fn, 'w+', {encoding: 'binary'});
 		var client = http.createClient(80, host);
-		var request = client.get(url, {"host": host, "Connection": "close", "User-Agent": "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 1.1.4322; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)"});
+		var request = client.request("GET", url, {"host": host, "Connection": "close", "User-Agent": "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727; .NET CLR 1.1.4322; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)"});
 		request.finish(function (res) {
 			res.addListener('body', function(chunk) {
 				fd.write(chunk);
@@ -143,7 +144,7 @@ yuserv.downloadHandler = function (dirname) {
 		status = 400;
 
 		var client = http.createClient(80, "www.youtube.com");
-		var request = client.get(metaurl, {"host": "www.youtube.com", "Connection": "keep-alive"});
+		var request = client.request("GET", metaurl, {"host": "www.youtube.com", "Connection": "keep-alive"});
 
 		request.finish(function (res) {
 			var response = "";
@@ -157,7 +158,7 @@ yuserv.downloadHandler = function (dirname) {
 						body = response;
 						meta = JSON.parse(response);
 						title = meta["title"];
-						var vrequest = client.get(vidurl, {"host": "www.youtube.com", "Connection": "keep-alive"});
+						var vrequest = client.request("GET", vidurl, {"host": "www.youtube.com", "Connection": "keep-alive"});
 						vrequest.finish(function (res) {
 							var response = "";
 							switch(res.statusCode){
